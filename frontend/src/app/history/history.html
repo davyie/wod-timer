@@ -1,0 +1,32 @@
+<div class="history-page">
+  <h2>Session History</h2>
+
+  @if (loading()) {
+    <p class="status">Loading...</p>
+  } @else if (error()) {
+    <p class="status error">{{ error() }}</p>
+  } @else if (sessions().length === 0) {
+    <p class="status">No sessions saved yet. Run a timer and save it!</p>
+  } @else {
+    <table class="sessions-table">
+      <thead>
+        <tr>
+          <th>Label</th>
+          <th>Type</th>
+          <th>Start</th>
+          <th>Elapsed</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (session of sessions(); track session.id) {
+          <tr>
+            <td>{{ session.label }}</td>
+            <td>{{ formatType(session.timerType) }}</td>
+            <td>{{ session.startTime | date:'medium' }}</td>
+            <td>{{ formatElapsed(session.elapsedMs) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

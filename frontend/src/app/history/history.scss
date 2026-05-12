@@ -1,0 +1,27 @@
+.history-page {
+  h2 { margin-bottom: 1.5rem; font-weight: 500; color: #d0d0e8; }
+
+  .status {
+    color: #8888aa;
+    &.error { color: #e74c3c; }
+  }
+}
+
+.sessions-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #1e1e32;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
+
+  th, td {
+    padding: 0.85rem 1.25rem;
+    text-align: left;
+    border-bottom: 1px solid #2a2a44;
+  }
+
+  th { background: #252540; font-weight: 600; font-size: 0.85rem; color: #8888aa; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #252540; }
+}

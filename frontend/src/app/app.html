@@ -1,0 +1,11 @@
+<nav class="navbar">
+  <span class="navbar-brand">WOD Timer</span>
+  <div class="nav-links">
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Timer</a>
+    <a routerLink="/history" routerLinkActive="active">History</a>
+  </div>
+</nav>
+
+<main class="container">
+  <router-outlet />
+</main>

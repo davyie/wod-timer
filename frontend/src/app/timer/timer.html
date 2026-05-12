@@ -1,0 +1,131 @@
+<div class="timer-page">
+  <div class="mode-selector">
+    <button
+      (click)="selectType('stopwatch')"
+      [class.active]="timerType() === 'stopwatch'"
+      [disabled]="running() || countingDown()"
+      class="mode-btn"
+    >Stopwatch</button>
+    <button
+      (click)="selectType('amrap')"
+      [class.active]="timerType() === 'amrap'"
+      [disabled]="running() || countingDown()"
+      class="mode-btn"
+    >AMRAP</button>
+    <button
+      (click)="selectType('emom')"
+      [class.active]="timerType() === 'emom'"
+      [disabled]="running() || countingDown()"
+      class="mode-btn"
+    >EMOM</button>
+    <button
+      (click)="selectType('for-time')"
+      [class.active]="timerType() === 'for-time'"
+      [disabled]="running() || countingDown()"
+      class="mode-btn"
+    >For Time</button>
+  </div>
+
+  @if (!running() && !countingDown() && !finished() && elapsedMs() === 0) {
+    @if (timerType() === 'amrap') {
+      <div class="config">
+        <label>Duration</label>
+        <div class="config-row">
+          <input
+            type="number"
+            min="1"
+            [ngModel]="amrapMinutes()"
+            (ngModelChange)="amrapMinutes.set(+$event)"
+            class="config-input"
+          />
+          <span class="unit">min</span>
+        </div>
+      </div>
+    }
+    @if (timerType() === 'emom') {
+      <div class="config">
+        <label>Rounds</label>
+        <div class="config-row">
+          <input
+            type="number"
+            min="1"
+            [ngModel]="emomRounds()"
+            (ngModelChange)="emomRounds.set(+$event)"
+            class="config-input"
+          />
+          <span class="unit">rounds</span>
+        </div>
+        <label>Round Duration</label>
+        <div class="config-row">
+          <input
+            type="number"
+            min="0"
+            [ngModel]="emomRoundMinutes()"
+            (ngModelChange)="emomRoundMinutes.set(+$event)"
+            class="config-input"
+          />
+          <span class="unit">min</span>
+          <input
+            type="number"
+            min="0"
+            max="59"
+            [ngModel]="emomRoundSeconds()"
+            (ngModelChange)="emomRoundSeconds.set(+$event)"
+            class="config-input"
+          />
+          <span class="unit">sec</span>
+        </div>
+      </div>
+    }
+    @if (timerType() === 'for-time') {
+      <div class="config">
+        <label>Time Cap</label>
+        <div class="config-row">
+          <input
+            type="number"
+            min="0"
+            [ngModel]="forTimeCapMinutes()"
+            (ngModelChange)="forTimeCapMinutes.set(+$event)"
+            class="config-input"
+          />
+          <span class="unit">min (0 = none)</span>
+        </div>
+      </div>
+    }
+  }
+
+  @if (timerType() === 'emom' && (running() || finished() || elapsedMs() > 0)) {
+    <div class="round-info">Round {{ currentRound() }} / {{ emomRounds() }}</div>
+  }
+
+  @if (countingDown()) {
+    <div class="display">{{ countdownValue() }}</div>
+    <div class="finish-banner">Get Ready!</div>
+  } @else {
+    <div class="display" [class.finished]="finished()">{{ displayTime }}</div>
+    @if (finished()) {
+      <div class="finish-banner">Time!</div>
+    }
+  }
+
+  <div class="controls">
+    <button (click)="start()" [disabled]="running() || finished() || countingDown() || !configValid()" class="btn btn-start">Start</button>
+    <button (click)="stop()" [disabled]="!running()" class="btn btn-stop">Stop</button>
+    <button (click)="reset()" class="btn btn-reset">Reset</button>
+  </div>
+
+  @if (!running() && elapsedMs() > 0) {
+    <div class="save-section">
+      <input
+        type="text"
+        placeholder="Session label (optional)"
+        [ngModel]="label()"
+        (ngModelChange)="label.set($event)"
+        class="label-input"
+      />
+      <button (click)="save()" [disabled]="saved()" class="btn btn-save">
+        {{ saved() ? 'Saved!' : 'Save Session' }}
+      </button>
+    </div>
+  }
+</div>

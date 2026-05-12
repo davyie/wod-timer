@@ -1,0 +1,125 @@
+.timer-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding-top: 2rem;
+}
+
+.mode-selector {
+  display: flex;
+  border: 1px solid #3a3a5c;
+  border-radius: 8px;
+  overflow: hidden;
+
+  .mode-btn {
+    padding: 0.5rem 1.25rem;
+    border: none;
+    border-right: 1px solid #3a3a5c;
+    background: #1e1e32;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #8888aa;
+    transition: background 0.15s, color 0.15s;
+
+    &:last-child { border-right: none; }
+    &:hover:not(:disabled) { background: #2a2a44; color: #d0d0e8; }
+    &.active { background: #4f6fff; color: #fff; }
+    &:disabled { cursor: not-allowed; opacity: 0.5; }
+  }
+}
+
+.config {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+
+  label {
+    font-size: 0.8rem;
+    color: #7878a0;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .config-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .config-input {
+    width: 80px;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid #3a3a5c;
+    border-radius: 6px;
+    font-size: 1.2rem;
+    text-align: center;
+    background: #1e1e32;
+    color: #d0d0e8;
+
+    &:focus { outline: none; border-color: #4f6fff; }
+  }
+
+  .unit {
+    font-size: 0.9rem;
+    color: #7878a0;
+  }
+}
+
+.round-info {
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: #8888aa;
+}
+
+.display {
+  font-size: 4rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  background: #1e1e32;
+  color: #d0d0e8;
+  padding: 1.5rem 3rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
+  transition: background 0.3s, color 0.3s;
+
+  &.finished {
+    background: #1a3028;
+    color: #2ecc71;
+  }
+}
+
+.finish-banner {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #2ecc71;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.controls {
+  display: flex;
+  gap: 1rem;
+}
+
+.save-section {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+
+  .label-input {
+    padding: 0.6rem 1rem;
+    border: 1px solid #3a3a5c;
+    border-radius: 6px;
+    font-size: 1rem;
+    width: 220px;
+    background: #1e1e32;
+    color: #d0d0e8;
+
+    &::placeholder { color: #5a5a7a; }
+    &:focus { outline: none; border-color: #2980b9; }
+  }
+}
