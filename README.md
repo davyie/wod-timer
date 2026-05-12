@@ -113,6 +113,120 @@ java -jar target/timer-backend-0.0.1-SNAPSHOT.jar
 
 ---
 
+## Deploying to Azure
+
+The `infra/` directory contains Bicep templates that provision:
+- **Azure Container Registry (ACR)** — stores Docker images
+- **Azure Cosmos DB** — serverless, with the `timer-db` database and `sessions` container pre-created
+- **Azure Container Instances (ACI)** — runs the frontend and backend containers
+
+### Prerequisites
+
+- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
+- Docker
+- An Azure subscription
+
+### Step 1 — Login and create a resource group
+
+```bash
+az login
+az account set --subscription <your-subscription-id>
+az group create --name wod-timer-rg --location eastus
+```
+
+### Step 2 — Deploy ACR and push images
+
+```bash
+# Deploy the container registry
+az deployment group create \
+  --resource-group wod-timer-rg \
+  --template-file infra/modules/acr.bicep \
+  --parameters location=eastus
+
+# Get registry details
+ACR_NAME=$(az acr list --resource-group wod-timer-rg --query '[0].name' -o tsv)
+ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer -o tsv)
+
+# Build and push images
+az acr login --name $ACR_NAME
+
+docker build -t $ACR_LOGIN_SERVER/timer-frontend:latest ./frontend
+docker build -t $ACR_LOGIN_SERVER/timer-backend:latest ./backend/timer-backend
+
+docker push $ACR_LOGIN_SERVER/timer-frontend:latest
+docker push $ACR_LOGIN_SERVER/timer-backend:latest
+```
+
+### Step 3 — Deploy Cosmos DB and get the key
+
+```bash
+az deployment group create \
+  --resource-group wod-timer-rg \
+  --template-file infra/modules/cosmos.bicep \
+  --parameters location=eastus
+
+COSMOS_ACCOUNT=$(az cosmosdb list --resource-group wod-timer-rg --query '[0].name' -o tsv)
+COSMOS_KEY=$(az cosmosdb keys list \
+  --name $COSMOS_ACCOUNT \
+  --resource-group wod-timer-rg \
+  --query primaryMasterKey -o tsv)
+```
+
+### Step 4 — Deploy the full stack
+
+```bash
+ACR_USERNAME=$(az acr credential show --name $ACR_NAME --query username -o tsv)
+ACR_PASSWORD=$(az acr credential show --name $ACR_NAME --query 'passwords[0].value' -o tsv)
+
+az deployment group create \
+  --resource-group wod-timer-rg \
+  --template-file infra/main.bicep \
+  --parameters \
+    acrLoginServer=$ACR_LOGIN_SERVER \
+    acrUsername=$ACR_USERNAME \
+    acrPassword=$ACR_PASSWORD \
+    cosmosKey=$COSMOS_KEY
+
+# Get the app URL
+az deployment group show \
+  --resource-group wod-timer-rg \
+  --name main \
+  --query properties.outputs.appUrl.value -o tsv
+```
+
+The app will be available at the URL printed by the last command.
+
+### Updating a deployment
+
+When you push code changes, rebuild and re-push the images then re-run Step 4 with an `imageTag` to avoid stale cached images:
+
+```bash
+IMAGE_TAG=$(git rev-parse --short HEAD)
+
+docker build -t $ACR_LOGIN_SERVER/timer-frontend:$IMAGE_TAG ./frontend
+docker build -t $ACR_LOGIN_SERVER/timer-backend:$IMAGE_TAG ./backend/timer-backend
+docker push $ACR_LOGIN_SERVER/timer-frontend:$IMAGE_TAG
+docker push $ACR_LOGIN_SERVER/timer-backend:$IMAGE_TAG
+
+az deployment group create \
+  --resource-group wod-timer-rg \
+  --template-file infra/main.bicep \
+  --parameters \
+    acrLoginServer=$ACR_LOGIN_SERVER \
+    acrUsername=$ACR_USERNAME \
+    acrPassword=$ACR_PASSWORD \
+    cosmosKey=$COSMOS_KEY \
+    imageTag=$IMAGE_TAG
+```
+
+### Tear down
+
+```bash
+az group delete --name wod-timer-rg --yes
+```
+
+---
+
 ## Project Structure
 
 ```
