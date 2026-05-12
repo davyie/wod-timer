@@ -1,0 +1,4 @@
+com/timerapp/App.class
+com/timerapp/repository/SessionRepository.class
+com/timerapp/model/TimerSession.class
+com/timerapp/controller/SessionController.class

@@ -1,0 +1,4 @@
+/home/admini/GitHub/timer-app/backend/timer-backend/src/main/java/com/timerapp/App.java
+/home/admini/GitHub/timer-app/backend/timer-backend/src/main/java/com/timerapp/controller/SessionController.java
+/home/admini/GitHub/timer-app/backend/timer-backend/src/main/java/com/timerapp/model/TimerSession.java
+/home/admini/GitHub/timer-app/backend/timer-backend/src/main/java/com/timerapp/repository/SessionRepository.java
