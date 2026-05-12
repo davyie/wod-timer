@@ -15,8 +15,13 @@ module cosmos 'modules/cosmos.bicep' = {
   params: { location: location }
 }
 
-module aci 'modules/aci.bicep' = {
-  name: 'aci'
+module containerAppEnv 'modules/container-app-env.bicep' = {
+  name: 'containerAppEnv'
+  params: { location: location }
+}
+
+module containerApps 'modules/container-apps.bicep' = {
+  name: 'containerApps'
   params: {
     location: location
     imageTag: imageTag
@@ -25,8 +30,8 @@ module aci 'modules/aci.bicep' = {
     acrPassword: acrPassword
     cosmosEndpoint: cosmos.outputs.endpoint
     cosmosKey: cosmosKey
+    envId: containerAppEnv.outputs.envId
   }
 }
 
-output appUrl string = 'http://${aci.outputs.fqdn}'
-output appIp string = aci.outputs.ip
+output appUrl string = containerApps.outputs.frontendUrl

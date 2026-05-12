@@ -5,6 +5,8 @@ services:
       - "80:80"
     depends_on:
       - backend
+    environment:
+      BACKEND_URL: http://backend:8080
 
   backend:
     build: ./backend/timer-backend

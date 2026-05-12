@@ -10,5 +10,5 @@ resource registry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   }
 }
 
-output loginServer string = registry.loginServer
+output loginServer string = registry.properties.loginServer
 output registryName string = registry.name

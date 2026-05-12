@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "10566453903461261870"
+      "templateHash": "14980606750030714474"
     }
   },
   "parameters": {
@@ -143,7 +143,77 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "aci",
+      "name": "containerAppEnv",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.43.8.12551",
+              "templateHash": "15710400851475095082"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2022-10-01",
+              "name": "[format('timer-logs-{0}', uniqueString(resourceGroup().id))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                },
+                "retentionInDays": 30
+              }
+            },
+            {
+              "type": "Microsoft.App/managedEnvironments",
+              "apiVersion": "2023-05-01",
+              "name": "[format('timer-env-{0}', uniqueString(resourceGroup().id))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "appLogsConfiguration": {
+                  "destination": "log-analytics",
+                  "logAnalyticsConfiguration": {
+                    "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', format('timer-logs-{0}', uniqueString(resourceGroup().id))), '2022-10-01').customerId]",
+                    "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', format('timer-logs-{0}', uniqueString(resourceGroup().id))), '2022-10-01').primarySharedKey]"
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', format('timer-logs-{0}', uniqueString(resourceGroup().id)))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "envId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.App/managedEnvironments', format('timer-env-{0}', uniqueString(resourceGroup().id)))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "containerApps",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -170,6 +240,9 @@
           },
           "cosmosKey": {
             "value": "[parameters('cosmosKey')]"
+          },
+          "envId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'containerAppEnv'), '2025-04-01').outputs.envId.value]"
           }
         },
         "template": {
@@ -179,7 +252,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "2886625043398816607"
+              "templateHash": "1922305476432972185"
             }
           },
           "parameters": {
@@ -203,67 +276,59 @@
             },
             "cosmosKey": {
               "type": "securestring"
+            },
+            "envId": {
+              "type": "string"
             }
           },
           "resources": [
             {
-              "type": "Microsoft.ContainerInstance/containerGroups",
+              "type": "Microsoft.App/containerApps",
               "apiVersion": "2023-05-01",
-              "name": "timer-app",
+              "name": "timer-backend",
               "location": "[parameters('location')]",
               "properties": {
-                "osType": "Linux",
-                "restartPolicy": "Always",
-                "imageRegistryCredentials": [
-                  {
-                    "server": "[parameters('acrLoginServer')]",
-                    "username": "[parameters('acrUsername')]",
-                    "password": "[parameters('acrPassword')]"
-                  }
-                ],
-                "containers": [
-                  {
-                    "name": "frontend",
-                    "properties": {
-                      "image": "[format('{0}/timer-frontend:{1}', parameters('acrLoginServer'), parameters('imageTag'))]",
-                      "ports": [
-                        {
-                          "port": 80,
-                          "protocol": "TCP"
-                        }
-                      ],
-                      "resources": {
-                        "requests": {
-                          "cpu": "[json('0.5')]",
-                          "memoryInGB": "[json('0.5')]"
-                        }
-                      }
-                    }
+                "environmentId": "[parameters('envId')]",
+                "configuration": {
+                  "ingress": {
+                    "external": false,
+                    "targetPort": 8080
                   },
-                  {
-                    "name": "backend",
-                    "properties": {
+                  "registries": [
+                    {
+                      "server": "[parameters('acrLoginServer')]",
+                      "username": "[parameters('acrUsername')]",
+                      "passwordSecretRef": "acr-password"
+                    }
+                  ],
+                  "secrets": [
+                    {
+                      "name": "acr-password",
+                      "value": "[parameters('acrPassword')]"
+                    },
+                    {
+                      "name": "cosmos-key",
+                      "value": "[parameters('cosmosKey')]"
+                    }
+                  ]
+                },
+                "template": {
+                  "containers": [
+                    {
+                      "name": "backend",
                       "image": "[format('{0}/timer-backend:{1}', parameters('acrLoginServer'), parameters('imageTag'))]",
-                      "ports": [
-                        {
-                          "port": 8080,
-                          "protocol": "TCP"
-                        }
-                      ],
                       "resources": {
-                        "requests": {
-                          "cpu": "[json('1.0')]",
-                          "memoryInGB": "[json('1.0')]"
-                        }
+                        "cpu": "[json('0.5')]",
+                        "memory": "1Gi"
                       },
-                      "environmentVariables": [
+                      "env": [
                         {
                           "name": "COSMOS_ENDPOINT",
                           "value": "[parameters('cosmosEndpoint')]"
                         },
                         {
                           "name": "COSMOS_KEY",
-                          "secureValue": "[parameters('cosmosKey')]"
+                          "secretRef": "cosmos-key"
                         },
                         {
                           "name": "COSMOS_DATABASE",
@@ -271,34 +336,78 @@
                         }
                       ]
                     }
-                  }
-                ],
-                "ipAddress": {
-                  "type": "Public",
-                  "ports": [
-                    {
-                      "port": 80,
-                      "protocol": "TCP"
-                    }
                   ],
-                  "dnsNameLabel": "[format('timer-app-{0}', uniqueString(resourceGroup().id))]"
+                  "scale": {
+                    "minReplicas": 0,
+                    "maxReplicas": 2
+                  }
                 }
               }
+            },
+            {
+              "type": "Microsoft.App/containerApps",
+              "apiVersion": "2023-05-01",
+              "name": "timer-frontend",
+              "location": "[parameters('location')]",
+              "properties": {
+                "environmentId": "[parameters('envId')]",
+                "configuration": {
+                  "ingress": {
+                    "external": true,
+                    "targetPort": 80
+                  },
+                  "registries": [
+                    {
+                      "server": "[parameters('acrLoginServer')]",
+                      "username": "[parameters('acrUsername')]",
+                      "passwordSecretRef": "acr-password"
+                    }
+                  ],
+                  "secrets": [
+                    {
+                      "name": "acr-password",
+                      "value": "[parameters('acrPassword')]"
+                    }
+                  ]
+                },
+                "template": {
+                  "containers": [
+                    {
+                      "name": "frontend",
+                      "image": "[format('{0}/timer-frontend:{1}', parameters('acrLoginServer'), parameters('imageTag'))]",
+                      "resources": {
+                        "cpu": "[json('0.25')]",
+                        "memory": "0.5Gi"
+                      },
+                      "env": [
+                        {
+                          "name": "BACKEND_URL",
+                          "value": "http://timer-backend"
+                        }
+                      ]
+                    }
+                  ],
+                  "scale": {
+                    "minReplicas": 0,
+                    "maxReplicas": 2
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.App/containerApps', 'timer-backend')]"
+              ]
             }
           ],
           "outputs": {
-            "fqdn": {
+            "frontendUrl": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups', 'timer-app'), '2023-05-01').ipAddress.fqdn]"
-            },
-            "ip": {
-              "type": "string",
-              "value": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups', 'timer-app'), '2023-05-01').ipAddress.ip]"
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', 'timer-frontend'), '2023-05-01').configuration.ingress.fqdn)]"
             }
           }
         }
       },
       "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'containerAppEnv')]",
         "[resourceId('Microsoft.Resources/deployments', 'cosmos')]"
       ]
     }
@@ -306,11 +415,7 @@
   "outputs": {
     "appUrl": {
       "type": "string",
-      "value": "[format('http://{0}', reference(resourceId('Microsoft.Resources/deployments', 'aci'), '2025-04-01').outputs.fqdn.value)]"
-    },
-    "appIp": {
-      "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'aci'), '2025-04-01').outputs.ip.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'containerApps'), '2025-04-01').outputs.frontendUrl.value]"
     }
   }
 }
