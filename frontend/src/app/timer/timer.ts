@@ -2,6 +2,7 @@ import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SessionService } from '../core/services/session';
 import { AudioService } from '../core/services/audio';
+import { WakeLockService } from '../core/services/wake-lock';
 import { ScrollableInputDirective } from '../shared/scrollable-input.directive';
 
 type TimerType = 'stopwatch' | 'amrap' | 'emom' | 'for-time';
@@ -15,6 +16,7 @@ type TimerType = 'stopwatch' | 'amrap' | 'emom' | 'for-time';
 export class TimerComponent implements OnDestroy {
   private readonly sessionService = inject(SessionService);
   private readonly audioService = inject(AudioService);
+  private readonly wakeLockService = inject(WakeLockService);
 
   timerType = signal<TimerType>('stopwatch');
   amrapMinutes = signal(10);
@@ -74,6 +76,7 @@ export class TimerComponent implements OnDestroy {
     this.countingDown.set(true);
     this.countdownValue.set(10);
     this.audioService.playCountdownPip();
+    this.wakeLockService.acquire();
     this.countdownId = setInterval(() => {
       const next = this.countdownValue() - 1;
       if (next <= 0) {
@@ -161,6 +164,7 @@ export class TimerComponent implements OnDestroy {
     this.running.set(false);
     this.finished.set(true);
     this.audioService.playFinish();
+    this.wakeLockService.release();
   }
 
   stop(): void {
@@ -169,6 +173,7 @@ export class TimerComponent implements OnDestroy {
     this.intervalId = null;
     this.running.set(false);
     this.audioService.playPip();
+    this.wakeLockService.release();
   }
 
   reset(): void {
@@ -176,11 +181,13 @@ export class TimerComponent implements OnDestroy {
       clearInterval(this.countdownId!);
       this.countdownId = null;
       this.countingDown.set(false);
+      this.wakeLockService.release();
     }
     if (this.running()) {
       clearInterval(this.intervalId!);
       this.intervalId = null;
       this.running.set(false);
+      this.wakeLockService.release();
     }
     this.elapsedMs.set(0);
     this.saved.set(false);
